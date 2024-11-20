@@ -1,4 +1,5 @@
 ﻿using API_REST.DataBase;
+using API_REST.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,10 +10,10 @@ namespace API_REST.Controllers
     [ApiController]
     public class UsuariosController : ControllerBase
     {
-        private readonly CatalogoDbContext _Context;
-        public UsuariosController(CatalogoDbContext Context) { 
+        private readonly UsuariosServices _UsuarioServices;
+        public UsuariosController(UsuariosServices UsuarioServices) { 
         
-         _Context = Context;
+         _UsuarioServices = UsuarioServices;
         }
 
         [HttpGet]
@@ -20,14 +21,20 @@ namespace API_REST.Controllers
 
         public async Task<ActionResult> GetIdUsuarios(int id)
         {
-            Usuario? usuario = await _Context.Usuarios.FirstOrDefaultAsync(u=>u.Id == id);
 
-            if(usuario != null)
+            if(id != 0)
             {
-                return Ok(usuario);
+                if(await _UsuarioServices.GetId(id) != null)
+                {
+                    return Ok(await _UsuarioServices.GetId(id));
+                }
+                else
+                {
+                    return Ok("El usuario no se encontro");
+                }
             }
 
-            return Ok("Usuario no encontrado");
+            return Ok("Debe ingresar el id del usuario");
         }
 
 
@@ -36,22 +43,13 @@ namespace API_REST.Controllers
 
         public async Task<ActionResult<Usuario>> PostUsuario(Usuario usuario)
         {
-            Usuario NewUsuario = new Usuario();
+           
 
-            if(usuario != null)
+            if(usuario.Email != null && usuario.Contraseña != null && usuario.Nombre != null && usuario.Apellido != null)
             {
-                NewUsuario.Email = usuario.Email;
-                NewUsuario.Contraseña = usuario.Contraseña;
-                NewUsuario.TipoDeUsuario = 0;
-                NewUsuario.FechaDeNacimiento = usuario.FechaDeNacimiento;
-                NewUsuario.Nombre = usuario.Nombre;
-                NewUsuario.Apellido = usuario.Apellido;
-                NewUsuario.ImagenPerfil = usuario.ImagenPerfil;
 
-                await _Context.Usuarios.AddAsync(NewUsuario);
-                _Context.SaveChanges();
-
-                return Ok("Usuario añadido exitosamente!");
+                await _UsuarioServices.Post(usuario);
+                return Ok("Se ha creado un nuevo usuario");
             }
 
             return Ok("El usuario ingresado no contiene datos");
@@ -63,21 +61,31 @@ namespace API_REST.Controllers
 
         public async Task<ActionResult<Usuario>> PutUsuario(Usuario usuario)
         {
-            Usuario? UpdateUsuario = await _Context.Usuarios.FirstOrDefaultAsync(u => u.Id == usuario.Id);
-
-            if(UpdateUsuario != null)
+            if(usuario.Id != 0)
             {
-                UpdateUsuario.Contraseña = usuario.Contraseña;
-                UpdateUsuario.FechaDeNacimiento = usuario.FechaDeNacimiento;
-                UpdateUsuario.Nombre = usuario.Nombre;
-                UpdateUsuario.Apellido = usuario.Apellido;
-                UpdateUsuario.ImagenPerfil = usuario.ImagenPerfil;
+                if(usuario.Contraseña != null  && usuario.Nombre != null && usuario.Apellido != null)
+                {
+                    if (await _UsuarioServices.Put(usuario) != null)
+                    {
+                        return Ok("Se ha modificado exitosamente");
+                    }
+                }
+                else
+                {
+                    return Ok("Algunos campos estan vacios");
+                }
 
-                _Context.Usuarios.Update(UpdateUsuario);
-                _Context.SaveChanges();
 
-                return Ok("Usuario actualizado");
+
+
             }
+            else
+            {
+                return Ok("Debe enviar el id del usuario");
+            }
+
+
+
 
             return Ok("Usuario no encontrado");
         }

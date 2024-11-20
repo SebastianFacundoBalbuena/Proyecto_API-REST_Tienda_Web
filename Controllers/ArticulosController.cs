@@ -1,4 +1,5 @@
 ﻿using API_REST.DataBase;
+using API_REST.Services;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -9,19 +10,19 @@ namespace API_REST.Controllers
     [ApiController]
     public class ArticulosController : ControllerBase
     {
-        private readonly CatalogoDbContext _Context;
+        private readonly ArticulosServices _ArticuloServices;
 
-        public ArticulosController(CatalogoDbContext Context)
+        public ArticulosController(ArticulosServices ArticuloServices)
         {
-            _Context = Context;
+            _ArticuloServices = ArticuloServices;
         }
 
         [HttpGet]
         [Route("lista")]
         public async Task<ActionResult> Get()
         {
-            var listaCatalogo = await _Context.Articulos.ToListAsync();
-            return Ok(listaCatalogo);
+
+            return Ok(await _ArticuloServices.Get());
         }
 
 
@@ -30,14 +31,12 @@ namespace API_REST.Controllers
 
         public async Task<ActionResult> GetOne(int id)
         {
-            Articulo? Obtener = await _Context.Articulos.FirstOrDefaultAsync(a => a.Id == id);
-
-            if (Obtener != null)
+            if(await _ArticuloServices.GetId(id) != null)
             {
-                return Ok(Obtener);
+                return Ok(await _ArticuloServices.GetId(id));
             }
 
-            return NotFound("Articulo no encontrado");
+            return NotFound("El articulo no se ha encontrado");
 
         }
 
@@ -47,23 +46,15 @@ namespace API_REST.Controllers
 
         public async Task<ActionResult> Post(Articulo articulo)
         {
-            Articulo NewArticulo = new Articulo();
-
-            NewArticulo.Nombre = articulo.Nombre;
-            NewArticulo.Codigo = articulo.Codigo;
-            NewArticulo.Descripcion = articulo.Descripcion;
-            NewArticulo.IdMarca = articulo.IdMarca;
-            NewArticulo.IdCategoria = articulo.IdCategoria;
-            NewArticulo.ImagenUrl = articulo.ImagenUrl;
-            NewArticulo.Precio = articulo.Precio;
-
-            if (NewArticulo != null)
+            
+            if(articulo.Codigo != null)
             {
-                await _Context.Articulos.AddAsync(NewArticulo);
-                _Context.SaveChanges();
-                return Ok("Guardado Exitoso!");
+                if(await _ArticuloServices.Post(articulo) != null)
+                {
+                    return Ok("Se ha añadido exitosamente");
+                }
+                
             }
-
             return Ok("El articulo recibido estaba vacio");
         }
 
@@ -72,26 +63,22 @@ namespace API_REST.Controllers
 
         public async Task<ActionResult> Put(Articulo articulo)
         {
-            Articulo? UpdateArticulo = await _Context.Articulos.FirstOrDefaultAsync(a => a.Id == articulo.Id);
 
-            if(UpdateArticulo != null)
+
+           if(articulo.Id != 0 && articulo.Codigo != null && articulo.Nombre != null && articulo.Descripcion != null && articulo.IdMarca != 0 
+                && articulo.IdCategoria != 0 && articulo.Precio != 0 && articulo.ImagenUrl != null)
             {
-                UpdateArticulo.Codigo = articulo.Codigo;
-                UpdateArticulo.Nombre = articulo.Nombre;
-                UpdateArticulo.Descripcion = articulo.Descripcion;
-                UpdateArticulo.IdMarca = articulo.IdMarca;
-                UpdateArticulo.IdCategoria = articulo.IdCategoria;
-                UpdateArticulo.ImagenUrl = articulo.ImagenUrl;
-                UpdateArticulo.Precio = articulo.Precio;
-
-                 _Context.Articulos.Update(UpdateArticulo);
-                _Context.SaveChanges();
-
-                return Ok("Actualizado exitosamente!");
+                if(await _ArticuloServices.Put(articulo) != null)
+                {
+                    return Ok("Se ha modificado exitosamente");
+                }
+                else
+                {
+                    return Ok("El articulo a modificar no se ha encontrado");
+                }
+                
             }
-
-            return Ok("No se ha encontrado el articulo a actualizar");
-
+            return Ok("Debe completar los datos antes de enviar");
          }
 
         [HttpDelete]
@@ -99,17 +86,16 @@ namespace API_REST.Controllers
 
         public async Task<ActionResult> Delete(int Id)
         {
-            Articulo? deleteArticulo = await _Context.Articulos.FirstOrDefaultAsync(a => a.Id == Id);
 
-            if(deleteArticulo != null)
+
+            if(await _ArticuloServices.Delete(Id) == 1)
             {
-                 _Context.Articulos.Remove(deleteArticulo);
-                _Context.SaveChanges();
-
-                return Ok("Articulo eliminado");
+                return Ok("El articulo se ha eliminado");
             }
-
-            return Ok("No se ha encontrado el articulo a eliminar");
+            else
+            {
+                return NotFound("El articulo no se ha encontrado");
+            }
         }
     }
 }
