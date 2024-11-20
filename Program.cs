@@ -16,6 +16,7 @@ builder.Services.AddSwaggerGen();
 
 builder.Services.AddScoped<ArticulosServices>();
 builder.Services.AddScoped<UsuariosServices>();
+builder.Services.AddScoped<RegistrosServices>();
 
 var app = builder.Build();
 
